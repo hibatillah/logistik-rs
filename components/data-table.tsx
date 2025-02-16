@@ -84,7 +84,7 @@ export function PaginationControls<TData>({
             ))}
           </SelectContent>
         </Select>
-        <Label className="max-sm:sr-only">Rows per page</Label>
+        <Label className="max-sm:sr-only">Baris per halaman</Label>
       </div>
       {/* Page number information */}
       <div className="text-muted-foreground flex grow justify-end whitespace-nowrap text-sm">
@@ -96,7 +96,7 @@ export function PaginationControls<TData>({
             {table.getState().pagination.pageIndex *
               table.getState().pagination.pageSize +
               1}
-            -
+            {" - "}
             {Math.min(
               Math.max(
                 table.getState().pagination.pageIndex *
@@ -107,7 +107,7 @@ export function PaginationControls<TData>({
               table.getRowCount(),
             )}
           </span>{" "}
-          of{" "}
+          dari{" "}
           <span className="text-foreground">
             {table.getRowCount().toString()}
           </span>
@@ -194,8 +194,17 @@ export function PaginationControls<TData>({
 }
 
 export function FilterControls<TData>({ table }: { table: TableType<TData> }) {
+  type Status = "processing" | "pending" | "failed"
+  const statusOpt = ["processing", "pending", "failed"]
+  type StatusObj = {
+    [K in Status]: boolean
+  }
+  const [status, setStatus] = useState<StatusObj>(
+    Object.fromEntries(statusOpt.map((key) => [key, false])) as StatusObj,
+  )
+
   return (
-    <div className="flex gap-4">
+    <div className="flex gap-3">
       <div className="relative">
         <Input
           type="search"
@@ -207,6 +216,57 @@ export function FilterControls<TData>({ table }: { table: TableType<TData> }) {
           <SearchIcon className="size-4" />
         </div>
       </div>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="outline">
+            <FilterIcon className="text-muted-foreground" />
+            <span>Status</span>
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent
+          align="start"
+          sideOffset={6}
+          className="space-y-2 p-3"
+        >
+          {statusOpt.map((opt, key) => {
+            const currenFilterValue = table
+              .getColumn("status")  
+              ?.getFilterValue() as string[]
+
+            const isChecked = Array.isArray(currenFilterValue)
+              ? currenFilterValue.includes(opt)
+              : false
+
+            return (
+              <div
+                key={key}
+                className="flex items-center gap-2"
+              >
+                <Checkbox
+                  id={opt}
+                  checked={isChecked}
+                  onCheckedChange={(checked: boolean) => {
+                    setStatus((prev) => ({ ...prev, [opt]: checked }))
+                    table
+                      .getColumn("status")
+                      ?.setFilterValue(
+                        Object.fromEntries(
+                          Object.entries(status).filter(([_, value]) => value),
+                        ),
+                      )
+                  }}
+                />
+                <Label
+                  htmlFor={opt}
+                  className="select-none capitalize"
+                >
+                  {opt}
+                </Label>
+              </div>
+            )
+          })}
+        </PopoverContent>
+      </Popover>
     </div>
   )
 }
@@ -289,7 +349,10 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id}>
+                    <TableHead
+                      key={header.id}
+                      className="not-has-[*]:w-14"
+                    >
                       {header.isPlaceholder ? null : header.column.getCanSort() &&
                         controls.sorting ? (
                         <div

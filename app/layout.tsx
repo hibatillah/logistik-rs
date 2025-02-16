@@ -2,6 +2,8 @@ import type { Metadata } from "next"
 
 import fonts from "@/lib/fonts"
 
+import { TooltipProvider } from "@/components/ui/tooltip"
+
 import "./globals.css"
 
 export const metadata: Metadata = {
@@ -19,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${fontsStringify} font-geist antialiased`}>
-        {children}
+        <TooltipProvider>{children}</TooltipProvider>
       </body>
     </html>
   )
