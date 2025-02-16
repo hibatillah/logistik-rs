@@ -13,9 +13,11 @@ import {
 } from "@/components/ui/breadcrumb"
 import { Separator } from "@/components/ui/separator"
 
+import ThemeToggle from "./theme/theme-toggle"
+import { Button } from "./ui/button"
 import { SidebarTrigger } from "./ui/sidebar"
 
-import { ChevronRight } from "lucide-react"
+import { ArrowUpToLineIcon, ChevronRight } from "lucide-react"
 
 export default function Header() {
   const pathname = usePathname()
@@ -55,6 +57,7 @@ export default function Header() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
+      <ThemeToggle className="ms-auto" />
     </header>
   )
 }

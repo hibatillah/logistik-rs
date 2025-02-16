@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 
 import fonts from "@/lib/fonts"
 
+import { ThemeProvider } from "@/components/theme/theme-provider"
 import { TooltipProvider } from "@/components/ui/tooltip"
 
 import "./globals.css"
@@ -20,8 +21,17 @@ export default function RootLayout({
 
   return (
     <html lang="en">
-      <body className={`${fontsStringify} font-geist antialiased`}>
-        <TooltipProvider>{children}</TooltipProvider>
+      <body
+        className={`${fontsStringify} font-geist antialiased`}
+        suppressHydrationWarning
+      >
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          disableTransitionOnChange
+        >
+          <TooltipProvider>{children}</TooltipProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

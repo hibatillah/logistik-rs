@@ -1,10 +1,11 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 import {
   ColumnDef,
   ColumnFiltersState,
+  FilterFn,
   PaginationState,
   SortingState,
   Table as TableType,
@@ -52,11 +53,7 @@ import {
   SearchIcon,
 } from "lucide-react"
 
-export function PaginationControls<TData>({
-  table,
-}: {
-  table: TableType<TData>
-}) {
+export function Paginations<TData>({ table }: { table: TableType<TData> }) {
   const pageSizeOpt = [5, 10, 20]
 
   return (
@@ -193,90 +190,134 @@ export function PaginationControls<TData>({
   )
 }
 
-export function FilterControls<TData>({ table }: { table: TableType<TData> }) {
-  type Status = "processing" | "pending" | "failed"
-  const statusOpt = ["processing", "pending", "failed"]
-  type StatusObj = {
-    [K in Status]: boolean
-  }
-  const [status, setStatus] = useState<StatusObj>(
-    Object.fromEntries(statusOpt.map((key) => [key, false])) as StatusObj,
-  )
-
+export function Controls<TData>({
+  table,
+  search = true,
+  filtering,
+  children,
+}: {
+  table: TableType<TData>
+  search: boolean
+  filtering?: DataFilter[]
+  children: React.ReactNode
+}) {
   return (
     <div className="flex gap-3">
-      <div className="relative">
-        <Input
-          type="search"
-          placeholder="Cari data"
-          className="ps-8 selection:bg-blue-600 [&::-webkit-search-cancel-button]:appearance-none"
-          onChange={(e) => table.setGlobalFilter(String(e.target.value))}
-        />
-        <div className="text-muted-foreground pointer-events-none absolute inset-y-0 start-2 flex items-center">
-          <SearchIcon className="size-4" />
+      {search && (
+        <div className="relative">
+          <Input
+            type="search"
+            placeholder="Cari data"
+            className="ps-8 selection:bg-blue-600 [&::-webkit-search-cancel-button]:appearance-none"
+            onChange={(e) => table.setGlobalFilter(String(e.target.value))}
+          />
+          <div className="text-muted-foreground pointer-events-none absolute inset-y-0 start-2 flex items-center">
+            <SearchIcon className="size-4" />
+          </div>
         </div>
-      </div>
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="outline">
-            <FilterIcon className="text-muted-foreground" />
-            <span>Status</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="start"
-          sideOffset={6}
-          className="space-y-2 p-3"
-        >
-          {statusOpt.map((opt, key) => {
-            const currenFilterValue = table
-              .getColumn("status")  
-              ?.getFilterValue() as string[]
-
-            const isChecked = Array.isArray(currenFilterValue)
-              ? currenFilterValue.includes(opt)
-              : false
-
-            return (
-              <div
-                key={key}
-                className="flex items-center gap-2"
-              >
-                <Checkbox
-                  id={opt}
-                  checked={isChecked}
-                  onCheckedChange={(checked: boolean) => {
-                    setStatus((prev) => ({ ...prev, [opt]: checked }))
-                    table
-                      .getColumn("status")
-                      ?.setFilterValue(
-                        Object.fromEntries(
-                          Object.entries(status).filter(([_, value]) => value),
-                        ),
-                      )
-                  }}
-                />
-                <Label
-                  htmlFor={opt}
-                  className="select-none capitalize"
-                >
-                  {opt}
-                </Label>
-              </div>
-            )
-          })}
-        </PopoverContent>
-      </Popover>
+      )}
+      {filtering?.map((item, key) => (
+        <Filter
+          key={key}
+          title={item.title}
+          data={item.data}
+          table={table}
+        />
+      ))}
+      {children}
     </div>
   )
 }
 
-interface DataTableState {
-  sorting: [SortingState, React.Dispatch<React.SetStateAction<SortingState>>]
-  filter: [
-    ColumnFiltersState,
-    React.Dispatch<React.SetStateAction<ColumnFiltersState>>,
-  ]
+type TFilter = Record<string, any>
+
+export const customFilterFn: FilterFn<TFilter> = (
+  row,
+  columnId,
+  filterValue: string[],
+) => {
+  if (!filterValue?.length) return true
+  const column = row.getValue(columnId) as string
+  return filterValue.includes(column)
+}
+
+export function Filter<TData>({
+  title,
+  data,
+  table,
+}: {
+  title: string
+  data: string[]
+  table: TableType<TData>
+}) {
+  const selectedStatuses = useMemo(() => {
+    const filterValue = table.getColumn(title)?.getFilterValue() as string[]
+    return filterValue ?? []
+  }, [table.getColumn(title)?.getFilterValue()])
+
+  const handleStatusChange = (checked: boolean, value: string) => {
+    const filterValue = table.getColumn(title)?.getFilterValue() as string[]
+    const newFilterValue = filterValue ? [...filterValue] : []
+
+    if (checked) {
+      newFilterValue.push(value)
+    } else {
+      const index = newFilterValue.indexOf(value)
+      newFilterValue.splice(index, 1)
+    }
+
+    table
+      .getColumn(title)
+      ?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
+  }
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="outline">
+          <FilterIcon
+            className="-ms-1 me-2 opacity-60"
+            size={16}
+            strokeWidth={2}
+            aria-hidden="true"
+          />
+          {title}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="min-w-36 p-3"
+        align="start"
+      >
+        <div className="space-y-3">
+          <div className="text-muted-foreground text-xs font-medium">
+            Filter
+          </div>
+          <div className="space-y-3">
+            {data.map((item, key) => (
+              <div
+                key={key}
+                className="flex gap-2"
+              >
+                <Checkbox
+                  id={item}
+                  checked={selectedStatuses.includes(item)}
+                  onCheckedChange={(checked: boolean) => {
+                    handleStatusChange(checked, item)
+                  }}
+                />
+                <Label
+                  htmlFor={item}
+                  className="capitalize select-none"
+                >
+                  {item}
+                </Label>
+              </div>
+            ))}
+          </div>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
 }
 
 interface Controls {
@@ -285,11 +326,18 @@ interface Controls {
   filter?: boolean
 }
 
+export interface DataFilter {
+  title: string
+  data: string[]
+}
+
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   controls?: Controls
-  state?: DataTableState
+  filtering?: DataFilter[]
+  search?: boolean
+  children?: React.ReactNode
 }
 
 export function DataTable<TData, TValue>({
@@ -298,19 +346,18 @@ export function DataTable<TData, TValue>({
   controls = {
     pagination: true,
     sorting: true,
-    filter: true,
   },
-  state,
+  search = true,
+  filtering,
+  children,
 }: DataTableProps<TData, TValue>) {
   const [globalFilter, setGlobalFilter] = useState<string>()
+  const [sorting, setSorting] = useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   })
-
-  const [sorting, setSorting] = state?.sorting ?? useState<SortingState>([])
-  const [columnFilters, setColumnFilters] =
-    state?.filter ?? useState<ColumnFiltersState>([])
 
   const table = useReactTable({
     data,
@@ -333,17 +380,25 @@ export function DataTable<TData, TValue>({
   })
 
   useEffect(() => {
-    const storedData = localStorage.getItem("pageSize")
-    if (storedData) {
-      setPagination((prev) => ({ ...prev, pageSize: Number(storedData) }))
+    if (typeof window !== "undefined") {
+      const storedData = localStorage.getItem("pageSize")
+      if (storedData) {
+        setPagination((prev) => ({ ...prev, pageSize: Number(storedData) }))
+      }
     }
   }, [])
 
   return (
     <div className="space-y-3">
-      {controls.filter && <FilterControls table={table} />}
-      <div className="rounded-md border">
-        <Table className="table-fixed">
+      <Controls
+        table={table}
+        search={search}
+        filtering={filtering}
+      >
+        {children}
+      </Controls>
+      <div className="overflow-hidden rounded-md border">
+        <Table className="bg-card table-fixed">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -438,7 +493,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      {controls.pagination && <PaginationControls table={table} />}
+      {controls.pagination && <Paginations table={table} />}
     </div>
   )
 }

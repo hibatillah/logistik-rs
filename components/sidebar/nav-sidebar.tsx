@@ -37,7 +37,7 @@ export function NavSidebar({
                 className={cn(
                   "gap-2.5",
                   isActive
-                    ? "bg-primary text-primary-foreground hover:bg-primary/95 hover:text-primary-foreground"
+                    ? "bg-card dark:bg-zinc-800 text-card-foreground border hover:bg-card"
                     : "",
                 )}
                 asChild

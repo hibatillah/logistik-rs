@@ -2,15 +2,17 @@
 
 import React from "react"
 
-import {
-  ColumnDef,
-  ColumnFiltersState,
-  SortingState,
-} from "@tanstack/react-table"
+import { ColumnDef, FilterFn } from "@tanstack/react-table"
 import { FormatOptions, format, getDate } from "date-fns"
 import { id as idLocale } from "date-fns/locale"
 
-import { DataTable } from "@/components/data-table"
+import {
+  DataFilter,
+  DataTable,
+  customFilterFn,
+  customFilterFn as customFilterFnType,
+} from "@/components/data-table"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useSidebar } from "@/components/ui/sidebar"
 import {
@@ -19,7 +21,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 
-import { InfoIcon } from "lucide-react"
+import { ArrowUpToLineIcon, InfoIcon, PlusIcon } from "lucide-react"
 
 const data: Payment[] = [
   {
@@ -219,7 +221,7 @@ export const columns: ColumnDef<Payment>[] = [
         weekStartsOn: 1,
       }
 
-      const date = getDate(data.date, dateOpt)
+      const date = getDate(new Date("2025-1-13"), dateOpt)
       const month = format(data.date, "LLL", dateOpt)
       const fullDate = format(data.date, "PPPP - kk:mm", dateOpt)
 
@@ -246,11 +248,23 @@ export const columns: ColumnDef<Payment>[] = [
   {
     accessorKey: "status",
     header: "Status",
+    cell: ({ row }) => {
+      return (
+        <Badge
+          variant="outline"
+          className="capitalize"
+        >
+          {row.getValue("status")}
+        </Badge>
+      )
+    },
+    filterFn: customFilterFn as unknown as FilterFn<Payment>,
   },
   {
     accessorKey: "email",
     header: "Email",
     enableGlobalFilter: true,
+    filterFn: customFilterFn as unknown as FilterFn<Payment>,
   },
   {
     accessorKey: "amount",
@@ -271,7 +285,7 @@ export const columns: ColumnDef<Payment>[] = [
               <InfoIcon />
             </Button>
           </TooltipTrigger>
-          <TooltipContent side="left">Detail</TooltipContent>
+          <TooltipContent>Detail</TooltipContent>
         </Tooltip>
       )
     },
@@ -279,19 +293,40 @@ export const columns: ColumnDef<Payment>[] = [
 ]
 
 export default function DataView() {
-  const [sorting, setSorting] = React.useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
-    [],
-  )
+  const filter: DataFilter[] = [
+    {
+      title: "status",
+      data: ["failed", "processing", "pending"],
+    },
+    {
+      title: "email",
+      data: ["habib@example.com", "raul@example.com", "gil@example.com"],
+    },
+  ]
 
   return (
     <DataTable
       columns={columns}
       data={data}
-      state={{
-        sorting: [sorting, setSorting],
-        filter: [columnFilters, setColumnFilters],
-      }}
-    />
+      filtering={filter}
+    >
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            variant="outline"
+            size="icon"
+            className="ms-auto"
+          >
+            <span className="sr-only">export</span>
+            <ArrowUpToLineIcon className="size-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Ekspor Data</TooltipContent>
+      </Tooltip>
+      <Button variant="default">
+        <PlusIcon />
+        <span>Tambah Penghapusan</span>
+      </Button>
+    </DataTable>
   )
 }
