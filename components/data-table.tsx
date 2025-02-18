@@ -1,16 +1,16 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import * as React from "react"
 
 import {
   ColumnDef,
   ColumnFiltersState,
-  FilterFn,
   PaginationState,
   SortingState,
   Table as TableType,
   flexRender,
   getCoreRowModel,
+  getFacetedUniqueValues,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
@@ -53,7 +53,11 @@ import {
   SearchIcon,
 } from "lucide-react"
 
-export function Paginations<TData>({ table }: { table: TableType<TData> }) {
+export function DataTablePaginations<TData>({
+  table,
+}: {
+  table: TableType<TData>
+}) {
   const pageSizeOpt = [5, 10, 20]
 
   return (
@@ -190,16 +194,14 @@ export function Paginations<TData>({ table }: { table: TableType<TData> }) {
   )
 }
 
-export function Controls<TData>({
+export function DataTableControls<TData>({
   table,
   search = true,
-  filtering,
   children,
 }: {
   table: TableType<TData>
-  search: boolean
-  filtering?: DataFilter[]
-  children: React.ReactNode
+  search?: boolean
+  children?: React.ReactNode
 }) {
   return (
     <div className="flex gap-3">
@@ -216,47 +218,35 @@ export function Controls<TData>({
           </div>
         </div>
       )}
-      {filtering?.map((item, key) => (
-        <Filter
-          key={key}
-          title={item.title}
-          data={item.data}
-          table={table}
-        />
-      ))}
       {children}
     </div>
   )
 }
 
-type TFilter = Record<string, any>
-
-export const customFilterFn: FilterFn<TFilter> = (
-  row,
-  columnId,
-  filterValue: string[],
-) => {
-  if (!filterValue?.length) return true
-  const column = row.getValue(columnId) as string
-  return filterValue.includes(column)
-}
-
-export function Filter<TData>({
-  title,
-  data,
+export function DataTableFilter<TData>({
+  filter,
   table,
 }: {
-  title: string
-  data: string[]
+  filter: keyof TData
   table: TableType<TData>
 }) {
-  const selectedStatuses = useMemo(() => {
-    const filterValue = table.getColumn(title)?.getFilterValue() as string[]
+  const filterKey = filter as string
+
+  const uniqueStatusValues = React.useMemo(() => {
+    const statusColumn = table.getColumn(filterKey)
+    if (!statusColumn) return []
+
+    const values = Array.from(statusColumn.getFacetedUniqueValues().keys())
+    return values.sort()
+  }, [table.getColumn(filterKey)?.getFacetedUniqueValues()])
+
+  const selectedStatuses = React.useMemo(() => {
+    const filterValue = table.getColumn(filterKey)?.getFilterValue() as string[]
     return filterValue ?? []
-  }, [table.getColumn(title)?.getFilterValue()])
+  }, [table.getColumn(filterKey)?.getFilterValue()])
 
   const handleStatusChange = (checked: boolean, value: string) => {
-    const filterValue = table.getColumn(title)?.getFilterValue() as string[]
+    const filterValue = table.getColumn(filterKey)?.getFilterValue() as string[]
     const newFilterValue = filterValue ? [...filterValue] : []
 
     if (checked) {
@@ -267,21 +257,24 @@ export function Filter<TData>({
     }
 
     table
-      .getColumn(title)
+      .getColumn(filterKey)
       ?.setFilterValue(newFilterValue.length ? newFilterValue : undefined)
   }
 
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline">
+        <Button
+          variant="outline"
+          className="capitalize"
+        >
           <FilterIcon
             className="-ms-1 me-2 opacity-60"
             size={16}
             strokeWidth={2}
             aria-hidden="true"
           />
-          {title}
+          {filterKey}
         </Button>
       </PopoverTrigger>
       <PopoverContent
@@ -293,10 +286,11 @@ export function Filter<TData>({
             Filter
           </div>
           <div className="space-y-3">
-            {data.map((item, key) => (
-              <div
+            {uniqueStatusValues.map((item, key) => (
+              <Label
                 key={key}
-                className="flex gap-2"
+                htmlFor={item}
+                className="flex select-none gap-2 capitalize"
               >
                 <Checkbox
                   id={item}
@@ -305,13 +299,8 @@ export function Filter<TData>({
                     handleStatusChange(checked, item)
                   }}
                 />
-                <Label
-                  htmlFor={item}
-                  className="capitalize select-none"
-                >
-                  {item}
-                </Label>
-              </div>
+                <span>{item}</span>
+              </Label>
             ))}
           </div>
         </div>
@@ -323,21 +312,15 @@ export function Filter<TData>({
 interface Controls {
   pagination?: boolean
   sorting?: boolean
-  filter?: boolean
-}
-
-export interface DataFilter {
-  title: string
-  data: string[]
 }
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   controls?: Controls
-  filtering?: DataFilter[]
-  search?: boolean
-  children?: React.ReactNode
+  children?:
+    | React.ReactNode
+    | ((props: { table: TableType<TData> }) => React.ReactNode)
 }
 
 export function DataTable<TData, TValue>({
@@ -347,14 +330,14 @@ export function DataTable<TData, TValue>({
     pagination: true,
     sorting: true,
   },
-  search = true,
-  filtering,
   children,
 }: DataTableProps<TData, TValue>) {
-  const [globalFilter, setGlobalFilter] = useState<string>()
-  const [sorting, setSorting] = useState<SortingState>([])
-  const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([])
-  const [pagination, setPagination] = useState<PaginationState>({
+  const [globalFilter, setGlobalFilter] = React.useState<string>()
+  const [sorting, setSorting] = React.useState<SortingState>([])
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
+    [],
+  )
+  const [pagination, setPagination] = React.useState<PaginationState>({
     pageIndex: 0,
     pageSize: 10,
   })
@@ -363,6 +346,7 @@ export function DataTable<TData, TValue>({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    getFacetedUniqueValues: getFacetedUniqueValues(),
     getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
@@ -379,7 +363,7 @@ export function DataTable<TData, TValue>({
     },
   })
 
-  useEffect(() => {
+  React.useEffect(() => {
     if (typeof window !== "undefined") {
       const storedData = localStorage.getItem("pageSize")
       if (storedData) {
@@ -390,15 +374,9 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-3">
-      <Controls
-        table={table}
-        search={search}
-        filtering={filtering}
-      >
-        {children}
-      </Controls>
+      {typeof children === "function" ? children({ table }) : children}
       <div className="overflow-hidden rounded-md border">
-        <Table className="bg-card table-fixed">
+        <Table className="bg-card">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
@@ -406,7 +384,7 @@ export function DataTable<TData, TValue>({
                   return (
                     <TableHead
                       key={header.id}
-                      className="not-has-[*]:w-14"
+                      className="not-has-[*]:w-14 has-[*]:min-w-24"
                     >
                       {header.isPlaceholder ? null : header.column.getCanSort() &&
                         controls.sorting ? (
@@ -493,7 +471,7 @@ export function DataTable<TData, TValue>({
           </TableBody>
         </Table>
       </div>
-      {controls.pagination && <Paginations table={table} />}
+      {controls.pagination && <DataTablePaginations table={table} />}
     </div>
   )
 }

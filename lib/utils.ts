@@ -6,7 +6,12 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function pathnameToTitle(path: string, separator: string = "-") {
-  return path.split(separator).join(" ")
+  const title = path.split(separator).join(" ")
+
+  const regexStartByText = /^[a-zA-Z]/
+  const isText = regexStartByText.test(title)
+
+  return isText ? title : "Detail"
 }
 
 export function titleToPathname(title: string, separator: string = "-") {

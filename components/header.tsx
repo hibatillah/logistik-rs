@@ -17,7 +17,7 @@ import ThemeToggle from "./theme/theme-toggle"
 import { Button } from "./ui/button"
 import { SidebarTrigger } from "./ui/sidebar"
 
-import { ArrowUpToLineIcon, ChevronRight } from "lucide-react"
+import { ChevronRight, SearchIcon } from "lucide-react"
 
 export default function Header() {
   const pathname = usePathname()
@@ -57,7 +57,17 @@ export default function Header() {
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
-      <ThemeToggle className="ms-auto" />
+      <Button
+        variant="outline"
+        className="text-muted-foreground ms-auto h-8 w-48 justify-start"
+      >
+        <SearchIcon className="size-4" />
+        <span>Cari...</span>
+        <kbd className="border-border ms-auto text-muted-foreground/70 inline-flex bg-card items-center rounded border px-1 font-[inherit] text-xs font-medium">
+          Ctrl K
+        </kbd>
+      </Button>
+      <ThemeToggle />
     </header>
   )
 }
