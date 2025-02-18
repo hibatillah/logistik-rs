@@ -1,7 +1,13 @@
 import { cn } from "@/lib/utils"
 
 import { Button } from "@/components/ui/button"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import {
   Tooltip,
   TooltipContent,
@@ -13,9 +19,9 @@ import { ArrowUpToLineIcon } from "lucide-react"
 export default function ExportData({
   data,
   className,
-}: {
+  ...props
+}: React.ComponentProps<"button"> & {
   data: any[]
-  className?: string
 }) {
   return (
     <Dialog>
@@ -26,6 +32,7 @@ export default function ExportData({
               variant="outline"
               size="icon"
               className={cn("flex-none", className)}
+              {...props}
             >
               <span className="sr-only">export</span>
               <ArrowUpToLineIcon className="size-4" />
@@ -38,7 +45,7 @@ export default function ExportData({
         <DialogHeader>
           <DialogTitle>Ekspor Data</DialogTitle>
         </DialogHeader>
-
+        <div className="">{data}</div>
       </DialogContent>
     </Dialog>
   )

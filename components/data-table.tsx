@@ -5,6 +5,7 @@ import * as React from "react"
 import {
   ColumnDef,
   ColumnFiltersState,
+  FilterFn,
   PaginationState,
   SortingState,
   Table as TableType,
@@ -197,14 +198,18 @@ export function DataTablePaginations<TData>({
 export function DataTableControls<TData>({
   table,
   search = true,
+  className,
   children,
-}: {
+  ...props
+}: React.ComponentProps<"div"> & {
   table: TableType<TData>
   search?: boolean
-  children?: React.ReactNode
 }) {
   return (
-    <div className="flex gap-3">
+    <div
+      className={cn("flex gap-3", className)}
+      {...props}
+    >
       {search && (
         <div className="relative">
           <Input
@@ -226,7 +231,8 @@ export function DataTableControls<TData>({
 export function DataTableFilter<TData>({
   filter,
   table,
-}: {
+  className,
+}: React.ComponentProps<"button"> & {
   filter: keyof TData
   table: TableType<TData>
 }) {
@@ -266,7 +272,7 @@ export function DataTableFilter<TData>({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          className="capitalize"
+          className={cn("capitalize", className)}
         >
           <FilterIcon
             className="-ms-1 me-2 opacity-60"
@@ -278,35 +284,52 @@ export function DataTableFilter<TData>({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="min-w-36 p-3"
         align="start"
+        className="!w-fit !min-w-max space-y-3 p-4"
       >
-        <div className="space-y-3">
-          <div className="text-muted-foreground text-xs font-medium">
-            Filter
-          </div>
-          <div className="space-y-3">
-            {uniqueStatusValues.map((item, key) => (
-              <Label
-                key={key}
-                htmlFor={item}
-                className="flex select-none gap-2 capitalize"
-              >
-                <Checkbox
-                  id={item}
-                  checked={selectedStatuses.includes(item)}
-                  onCheckedChange={(checked: boolean) => {
-                    handleStatusChange(checked, item)
-                  }}
-                />
-                <span>{item}</span>
-              </Label>
-            ))}
-          </div>
+        <div className="text-muted-foreground text-xs font-medium">Filter</div>
+        <div
+          data-density={uniqueStatusValues.length > 5 && "large"}
+          data-is-medium={
+            uniqueStatusValues.length > 5 && uniqueStatusValues.length <= 10
+          }
+          data-is-large={uniqueStatusValues.length > 10}
+          className="grid gap-3 data-[density=large]:grid-flow-row-dense data-[is-large=true]:grid-cols-3 data-[is-medium=true]:grid-cols-2"
+        >
+          {uniqueStatusValues.map((item, key) => (
+            <Label
+              key={key}
+              htmlFor={item}
+              className="flex select-none gap-2 capitalize"
+            >
+              <Checkbox
+                id={item}
+                checked={selectedStatuses.includes(item)}
+                onCheckedChange={(checked: boolean) => {
+                  handleStatusChange(checked, item)
+                }}
+              />
+              <span>{item}</span>
+            </Label>
+          ))}
         </div>
       </PopoverContent>
     </Popover>
   )
+}
+
+export function customDataFilter<T>(): FilterFn<T> {
+  function filterFn(
+    row: { getValue: (columnId: string) => unknown },
+    columnId: string,
+    filterValue: string[],
+  ): boolean {
+    if (!filterValue?.length) return true
+    const column = row.getValue(columnId) as string
+    return filterValue.includes(column)
+  }
+
+  return filterFn
 }
 
 interface Controls {

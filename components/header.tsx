@@ -51,7 +51,7 @@ export default function Header() {
               </BreadcrumbItem>
             ))}
           <BreadcrumbItem>
-            <BreadcrumbPage className="capitalize">
+            <BreadcrumbPage className="capitalize text-foreground/80">
               {currentPath?.title}
             </BreadcrumbPage>
           </BreadcrumbItem>

@@ -12,6 +12,7 @@ import {
   DataTable,
   DataTableControls,
   DataTableFilter,
+  customDataFilter,
 } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -212,16 +213,6 @@ export type Payment = {
   date: Date | string
 }
 
-export const customFilterFn: FilterFn<Payment> = (
-  row,
-  columnId,
-  filterValue: string[],
-) => {
-  if (!filterValue?.length) return true
-  const column = row.getValue(columnId) as string
-  return filterValue.includes(column)
-}
-
 export const columns: ColumnDef<Payment>[] = [
   {
     accessorKey: "date",
@@ -271,7 +262,7 @@ export const columns: ColumnDef<Payment>[] = [
         </Badge>
       )
     },
-    filterFn: customFilterFn,
+    filterFn: customDataFilter<Payment>(),
   },
   {
     accessorKey: "email",
@@ -281,6 +272,7 @@ export const columns: ColumnDef<Payment>[] = [
   {
     accessorKey: "amount",
     header: "Jumlah",
+    filterFn: customDataFilter<Payment>(),
   },
   {
     id: "actions",
@@ -318,6 +310,10 @@ export default function DataView() {
           <DataTableFilter
             table={table}
             filter="status"
+          />
+          <DataTableFilter
+            table={table}
+            filter="amount"
           />
           <ExportData
             data={[]}

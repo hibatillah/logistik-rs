@@ -1,4 +1,4 @@
-import { Geist, Geist_Mono, Inter, Outfit, Plus_Jakarta_Sans } from "next/font/google"
+import { Geist, Inter } from "next/font/google"
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -7,7 +7,7 @@ const geistSans = Geist({
 
 const inter = Inter({
   variable: "--font-inter",
-  subsets: ["latin"]
+  subsets: ["latin"],
 })
 
 const fonts = [geistSans, inter]
